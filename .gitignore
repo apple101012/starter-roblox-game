@@ -1,0 +1,10 @@
+# Built Roblox place files
+/starter-roblox-game.rbxlx
+/starter-roblox-game.rbxl
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+# Rojo outputs
+sourcemap.json
