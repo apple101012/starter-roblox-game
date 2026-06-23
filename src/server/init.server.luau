@@ -115,7 +115,8 @@ local spawnLocation = Instance.new("SpawnLocation")
 spawnLocation.Name = "RojoSpawn"
 spawnLocation.Anchored = true
 spawnLocation.Size = Vector3.new(12, 1, 12)
-spawnLocation.Position = Vector3.new(0, 1, 0)
+spawnLocation.Position = Vector3.new(0, 1, -16)
+spawnLocation.Orientation = Vector3.new(0, 180, 0)
 spawnLocation.Color = GameConfig.spawnColor
 spawnLocation.Material = Enum.Material.Neon
 spawnLocation.Parent = map
@@ -153,6 +154,7 @@ local boardLabels = {}
 local boardCells = {}
 local tableCenter = Vector3.new(0, 4, -12)
 local generatedScene = workspace:FindFirstChild("TicTacToeScene")
+local generatedScenePivot = CFrame.new(0, 6, -28)
 
 local function createSeat(name, position, rotationY, color)
 	local seat = Instance.new("Seat")
@@ -288,6 +290,8 @@ local function addPromptToPart(part)
 end
 
 local function useGeneratedScene(scene)
+	scene:PivotTo(generatedScenePivot)
+
 	local tableTop = scene:FindFirstChild("TableTop", true)
 
 	if tableTop and tableTop:IsA("BasePart") then
