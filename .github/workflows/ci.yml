@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rokit
+        run: |
+          curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
+          echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+
+      - name: Trust tools
+        run: rokit trust rojo-rbx/rojo lune-org/lune JohnnyMorganz/StyLua Kampfkarren/selene
+
+      - name: Install tools
+        run: rokit install
+
+      - name: Format check
+        run: stylua --check src tests
+
+      - name: Lint
+        run: selene src tests
+
+      - name: Unit tests
+        run: lune run tests/TicTacToeLogic.test.luau
+
+      - name: Rojo build
+        run: rojo build -o starter-roblox-game.rbxlx

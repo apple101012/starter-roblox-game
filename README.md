@@ -22,6 +22,15 @@ Build a place file:
 rojo build -o "starter-roblox-game.rbxlx"
 ```
 
+Run verification without opening Roblox Studio:
+
+```bash
+stylua --check src tests
+selene src tests
+lune run tests/TicTacToeLogic.test.luau
+rojo build -o "starter-roblox-game.rbxlx"
+```
+
 ## Studio Workflow
 
 1. Open Roblox Studio.
@@ -32,7 +41,7 @@ rojo build -o "starter-roblox-game.rbxlx"
 
 After connecting, files under `src/server`, `src/client`, and `src/shared` sync into Studio.
 
-Press Play in Studio, walk to the desk, and press `E` to play TicTacToe against the computer.
+Press Play in Studio and the blue TicTacToe game starts immediately. You play as `X`, the computer plays as `O`, and wins trigger a rainbow glow celebration.
 
 ## Folder Map
 
