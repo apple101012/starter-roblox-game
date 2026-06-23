@@ -32,7 +32,7 @@ rojo build -o "starter-roblox-game.rbxlx"
 
 After connecting, files under `src/server`, `src/client`, and `src/shared` sync into Studio.
 
-Press Play in Studio and collect glowing yellow coins. Every 10 coins gives you 1 win and resets your coin counter.
+Press Play in Studio, walk to the desk, and press `E` to play TicTacToe against the computer.
 
 ## Folder Map
 

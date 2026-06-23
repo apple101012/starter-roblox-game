@@ -8,3 +8,5 @@
 
 # Rojo outputs
 sourcemap.json
+rojo-serve.log
+.rojo-server.pid

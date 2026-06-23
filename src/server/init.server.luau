@@ -3,17 +3,31 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 
-print(("[Rojo Starter] Server running for %s"):format(GameConfig.gameName))
+print(("[Starter Roblox Game] Server running for %s"):format(GameConfig.gameName))
 
-local map = workspace:FindFirstChild("CoinDashMap")
+local oldCoinMap = workspace:FindFirstChild("CoinDashMap")
 
-if map then
-	map:Destroy()
+if oldCoinMap then
+	oldCoinMap:Destroy()
 end
 
-map = Instance.new("Folder")
-map.Name = "CoinDashMap"
+local oldMap = workspace:FindFirstChild("DeskTicTacToeMap")
+
+if oldMap then
+	oldMap:Destroy()
+end
+
+local map = Instance.new("Folder")
+map.Name = "DeskTicTacToeMap"
 map.Parent = workspace
+
+local winEvent = ReplicatedStorage:FindFirstChild("TicTacToeWinEvent")
+
+if not winEvent then
+	winEvent = Instance.new("RemoteEvent")
+	winEvent.Name = "TicTacToeWinEvent"
+	winEvent.Parent = ReplicatedStorage
+end
 
 local function makePart(name, size, position, color)
 	local part = Instance.new("Part")
@@ -29,54 +43,114 @@ local function makePart(name, size, position, color)
 	return part
 end
 
-local floor = makePart(
-	"Arena",
-	Vector3.new(GameConfig.arenaHalfSize * 2, 2, GameConfig.arenaHalfSize * 2),
-	Vector3.new(0, -1, 0),
-	Color3.fromRGB(45, 48, 56)
-)
-floor.Material = Enum.Material.Slate
+local function addSurfaceText(part, face, text, textColor)
+	local surfaceGui = Instance.new("SurfaceGui")
+	surfaceGui.Face = face
+	surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	surfaceGui.PixelsPerStud = 36
+	surfaceGui.Parent = part
 
-local function makeWall(name, size, position)
-	local wall = makePart(name, size, position, Color3.fromRGB(25, 28, 35))
-	wall.Material = Enum.Material.Concrete
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBold
+	label.Size = UDim2.fromScale(1, 1)
+	label.Text = text
+	label.TextColor3 = textColor
+	label.TextScaled = true
+	label.Parent = surfaceGui
 end
 
-local wallThickness = 4
+local floor = makePart(
+	"RoomFloor",
+	Vector3.new(GameConfig.arenaHalfSize * 2, 2, GameConfig.arenaHalfSize * 2),
+	Vector3.new(0, -1, 0),
+	Color3.fromRGB(52, 56, 62)
+)
+floor.Material = Enum.Material.WoodPlanks
+
+local wallColor = Color3.fromRGB(35, 39, 48)
+local wallThickness = 3
 local wallHeight = 18
 local edge = GameConfig.arenaHalfSize + wallThickness / 2
 
-makeWall("NorthWall", Vector3.new(GameConfig.arenaHalfSize * 2 + wallThickness * 2, wallHeight, wallThickness), Vector3.new(0, wallHeight / 2 - 1, -edge))
-makeWall("SouthWall", Vector3.new(GameConfig.arenaHalfSize * 2 + wallThickness * 2, wallHeight, wallThickness), Vector3.new(0, wallHeight / 2 - 1, edge))
-makeWall("EastWall", Vector3.new(wallThickness, wallHeight, GameConfig.arenaHalfSize * 2), Vector3.new(edge, wallHeight / 2 - 1, 0))
-makeWall("WestWall", Vector3.new(wallThickness, wallHeight, GameConfig.arenaHalfSize * 2), Vector3.new(-edge, wallHeight / 2 - 1, 0))
+makePart("BackWall", Vector3.new(GameConfig.arenaHalfSize * 2 + wallThickness * 2, wallHeight, wallThickness), Vector3.new(0, wallHeight / 2 - 1, -edge), wallColor)
+makePart("FrontWall", Vector3.new(GameConfig.arenaHalfSize * 2 + wallThickness * 2, wallHeight, wallThickness), Vector3.new(0, wallHeight / 2 - 1, edge), wallColor)
+makePart("LeftWall", Vector3.new(wallThickness, wallHeight, GameConfig.arenaHalfSize * 2), Vector3.new(-edge, wallHeight / 2 - 1, 0), wallColor)
+makePart("RightWall", Vector3.new(wallThickness, wallHeight, GameConfig.arenaHalfSize * 2), Vector3.new(edge, wallHeight / 2 - 1, 0), wallColor)
 
 local spawnLocation = Instance.new("SpawnLocation")
 spawnLocation.Name = "RojoSpawn"
 spawnLocation.Anchored = true
-spawnLocation.Size = Vector3.new(14, 1, 14)
-spawnLocation.Position = Vector3.new(0, 1, 0)
+spawnLocation.Size = Vector3.new(12, 1, 12)
+spawnLocation.Position = Vector3.new(0, 1, 26)
 spawnLocation.Color = GameConfig.spawnColor
 spawnLocation.Material = Enum.Material.Neon
 spawnLocation.Parent = map
+
+local tableTop = makePart("TicTacToeDesk", Vector3.new(20, 1.4, 12), Vector3.new(0, 3, -7), Color3.fromRGB(116, 74, 42))
+tableTop.Material = Enum.Material.Wood
+
+local legColor = Color3.fromRGB(84, 50, 28)
+local legOffsets = {
+	Vector3.new(-8, 1.1, -11),
+	Vector3.new(8, 1.1, -11),
+	Vector3.new(-8, 1.1, -3),
+	Vector3.new(8, 1.1, -3),
+}
+
+for index, offset in legOffsets do
+	local leg = makePart(("DeskLeg%d"):format(index), Vector3.new(1.2, 4, 1.2), offset, legColor)
+	leg.Material = Enum.Material.Wood
+end
+
+local boardBase = makePart("DeskBoard", Vector3.new(11, 0.25, 11), Vector3.new(0, 3.85, -7), Color3.fromRGB(20, 23, 29))
+boardBase.Material = Enum.Material.SmoothPlastic
+
+local gridColor = Color3.fromRGB(240, 244, 255)
+
+makePart("BoardLineVerticalLeft", Vector3.new(0.25, 0.3, 10.4), Vector3.new(-1.85, 4.05, -7), gridColor)
+makePart("BoardLineVerticalRight", Vector3.new(0.25, 0.3, 10.4), Vector3.new(1.85, 4.05, -7), gridColor)
+makePart("BoardLineHorizontalTop", Vector3.new(10.4, 0.3, 0.25), Vector3.new(0, 4.06, -8.85), gridColor)
+makePart("BoardLineHorizontalBottom", Vector3.new(10.4, 0.3, 0.25), Vector3.new(0, 4.06, -5.15), gridColor)
+
+addSurfaceText(boardBase, Enum.NormalId.Top, "TIC TAC TOE", Color3.fromRGB(255, 255, 255))
+
+local chairSeat = makePart("PlayerChairSeat", Vector3.new(8, 1, 7), Vector3.new(0, 1.8, 5), Color3.fromRGB(60, 92, 130))
+chairSeat.Material = Enum.Material.SmoothPlastic
+
+local chairBack = makePart("PlayerChairBack", Vector3.new(8, 8, 1), Vector3.new(0, 5, 8.5), Color3.fromRGB(45, 70, 104))
+chairBack.Material = Enum.Material.SmoothPlastic
+
+local prompt = Instance.new("ProximityPrompt")
+prompt.Name = "TicTacToePrompt"
+prompt.ActionText = "Play"
+prompt.ObjectText = "TicTacToe Desk"
+prompt.HoldDuration = 0
+prompt.KeyboardKeyCode = Enum.KeyCode.E
+prompt.MaxActivationDistance = 14
+prompt.RequiresLineOfSight = false
+prompt.Parent = tableTop
+
+local sign = makePart("DeskSign", Vector3.new(28, 8, 1), Vector3.new(0, 8, -GameConfig.arenaHalfSize + 4), Color3.fromRGB(34, 82, 112))
+sign.Material = Enum.Material.SmoothPlastic
+addSurfaceText(sign, Enum.NormalId.South, "Walk to the desk and press E to play", Color3.fromRGB(255, 255, 255))
 
 local function addLeaderboard(player)
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
 	leaderstats.Parent = player
 
-	local coins = Instance.new("IntValue")
-	coins.Name = "Coins"
-	coins.Value = 0
-	coins.Parent = leaderstats
-
 	local wins = Instance.new("IntValue")
-	wins.Name = "Wins"
+	wins.Name = "TicTacToeWins"
 	wins.Value = 0
 	wins.Parent = leaderstats
 end
 
-Players.PlayerAdded:Connect(addLeaderboard)
+Players.PlayerAdded:Connect(function(player)
+	if not player:FindFirstChild("leaderstats") then
+		addLeaderboard(player)
+	end
+end)
 
 for _, player in Players:GetPlayers() do
 	if not player:FindFirstChild("leaderstats") then
@@ -84,124 +158,16 @@ for _, player in Players:GetPlayers() do
 	end
 end
 
-local coinsFolder = Instance.new("Folder")
-coinsFolder.Name = "Coins"
-coinsFolder.Parent = map
-
-local randomGenerator = Random.new()
-local coinDebounces = {}
-
-local function randomCoinPosition()
-	local padding = 16
-	local x = randomGenerator:NextInteger(-GameConfig.arenaHalfSize + padding, GameConfig.arenaHalfSize - padding)
-	local z = randomGenerator:NextInteger(-GameConfig.arenaHalfSize + padding, GameConfig.arenaHalfSize - padding)
-
-	return Vector3.new(x, 3, z)
-end
-
-local function moveCoin(coin)
-	coin.Position = randomCoinPosition()
-	coin.Transparency = 0
-	coin.CanTouch = true
-end
-
-local function getPlayerFromHit(hit)
-	local character = hit:FindFirstAncestorOfClass("Model")
-
-	if not character then
-		return nil
-	end
-
-	return Players:GetPlayerFromCharacter(character)
-end
-
-local function awardCoin(player)
+winEvent.OnServerEvent:Connect(function(player)
 	local leaderstats = player:FindFirstChild("leaderstats")
 
 	if not leaderstats then
 		return
 	end
 
-	local coins = leaderstats:FindFirstChild("Coins")
-	local wins = leaderstats:FindFirstChild("Wins")
+	local wins = leaderstats:FindFirstChild("TicTacToeWins")
 
-	if not coins or not wins then
-		return
-	end
-
-	coins.Value += GameConfig.coinValue
-
-	if coins.Value >= GameConfig.winningCoins then
-		coins.Value = 0
+	if wins then
 		wins.Value += 1
 	end
-end
-
-local function createCoin(index)
-	local coin = Instance.new("Part")
-	coin.Name = ("Coin%02d"):format(index)
-	coin.Shape = Enum.PartType.Ball
-	coin.Size = Vector3.new(3, 3, 3)
-	coin.Anchored = true
-	coin.CanCollide = false
-	coin.Color = Color3.fromRGB(255, 205, 70)
-	coin.Material = Enum.Material.Neon
-	coin.Parent = coinsFolder
-
-	local light = Instance.new("PointLight")
-	light.Brightness = 1.5
-	light.Color = coin.Color
-	light.Range = 12
-	light.Parent = coin
-
-	moveCoin(coin)
-
-	coin.Touched:Connect(function(hit)
-		local player = getPlayerFromHit(hit)
-
-		if not player or coinDebounces[coin] then
-			return
-		end
-
-		coinDebounces[coin] = true
-		coin.CanTouch = false
-		coin.Transparency = 1
-		awardCoin(player)
-
-		task.delay(1.25, function()
-			moveCoin(coin)
-			coinDebounces[coin] = nil
-		end)
-	end)
-end
-
-for index = 1, GameConfig.coinCount do
-	createCoin(index)
-end
-
-local sign = makePart("GoalSign", Vector3.new(28, 12, 1), Vector3.new(0, 8, -GameConfig.arenaHalfSize + 5), Color3.fromRGB(32, 80, 120))
-sign.Material = Enum.Material.SmoothPlastic
-
-local surfaceGui = Instance.new("SurfaceGui")
-surfaceGui.Face = Enum.NormalId.South
-surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-surfaceGui.PixelsPerStud = 32
-surfaceGui.Parent = sign
-
-local signText = Instance.new("TextLabel")
-signText.BackgroundTransparency = 1
-signText.Font = Enum.Font.GothamBold
-signText.Size = UDim2.fromScale(1, 1)
-signText.Text = ("Collect %d coins to score a win"):format(GameConfig.winningCoins)
-signText.TextColor3 = Color3.fromRGB(255, 255, 255)
-signText.TextScaled = true
-signText.Parent = surfaceGui
-	spawnLocation = Instance.new("SpawnLocation")
-	spawnLocation.Name = "RojoSpawn"
-	spawnLocation.Anchored = true
-	spawnLocation.Size = Vector3.new(12, 1, 12)
-	spawnLocation.Position = Vector3.new(0, 1, 0)
-	spawnLocation.Parent = workspace
-end
-
-spawnLocation.Color = GameConfig.spawnColor
+end)
