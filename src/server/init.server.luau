@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
@@ -152,9 +153,162 @@ signText.Parent = surfaceGui
 
 local boardLabels = {}
 local boardCells = {}
-local tableCenter = Vector3.new(0, 4, -12)
 local generatedScene = workspace:FindFirstChild("TicTacToeScene")
 local generatedScenePivot = CFrame.new(0, 6, -28)
+local tableCenter = generatedScenePivot.Position
+
+Lighting.Ambient = Color3.fromRGB(35, 79, 130)
+Lighting.Brightness = 2.8
+Lighting.ColorShift_Top = Color3.fromRGB(78, 197, 255)
+Lighting.ColorShift_Bottom = Color3.fromRGB(5, 20, 50)
+Lighting.EnvironmentDiffuseScale = 0.45
+Lighting.EnvironmentSpecularScale = 0.85
+Lighting.GlobalShadows = true
+Lighting.OutdoorAmbient = Color3.fromRGB(12, 35, 75)
+
+local function addLight(part, color, brightness, range)
+	local pointLight = Instance.new("PointLight")
+	pointLight.Brightness = brightness
+	pointLight.Color = color
+	pointLight.Range = range
+	pointLight.Parent = part
+
+	return pointLight
+end
+
+local function makeNeonPart(name, size, position, color)
+	local part = makePart(name, size, position, color)
+	part.Material = Enum.Material.Neon
+
+	return part
+end
+
+local function createLoungeDressing()
+	local cyan = Color3.fromRGB(0, 190, 255)
+	local deepBlue = Color3.fromRGB(5, 22, 55)
+	local panelBlue = Color3.fromRGB(8, 58, 118)
+	local tableFocus = generatedScenePivot.Position
+
+	local platform = makePart(
+		"TablePresentationPlatform",
+		Vector3.new(30, 0.45, 22),
+		Vector3.new(tableFocus.X, 0.25, tableFocus.Z),
+		Color3.fromRGB(7, 31, 70)
+	)
+	platform.Material = Enum.Material.SmoothPlastic
+
+	makeNeonPart(
+		"PlatformFrontGlow",
+		Vector3.new(30, 0.2, 0.35),
+		Vector3.new(tableFocus.X, 0.62, tableFocus.Z + 11.1),
+		cyan
+	)
+	makeNeonPart(
+		"PlatformBackGlow",
+		Vector3.new(30, 0.2, 0.35),
+		Vector3.new(tableFocus.X, 0.62, tableFocus.Z - 11.1),
+		Color3.fromRGB(90, 145, 255)
+	)
+	makeNeonPart(
+		"PlatformLeftGlow",
+		Vector3.new(0.35, 0.2, 22),
+		Vector3.new(tableFocus.X - 15.1, 0.62, tableFocus.Z),
+		cyan
+	)
+	makeNeonPart(
+		"PlatformRightGlow",
+		Vector3.new(0.35, 0.2, 22),
+		Vector3.new(tableFocus.X + 15.1, 0.62, tableFocus.Z),
+		cyan
+	)
+
+	for index = 1, 6 do
+		local z = 10 - index * 5.4
+		local pathTile = makePart(
+			("SpawnRunwayTile%d"):format(index),
+			Vector3.new(8, 0.18, 3.6),
+			Vector3.new(0, 0.18, z),
+			Color3.fromRGB(8, 44, 94)
+		)
+		pathTile.Material = Enum.Material.SmoothPlastic
+
+		local centerLine = makeNeonPart(
+			("SpawnRunwayGlow%d"):format(index),
+			Vector3.new(0.45, 0.24, 3.8),
+			Vector3.new(0, 0.42, z),
+			Color3.fromRGB(55, 226, 255)
+		)
+		addLight(centerLine, Color3.fromRGB(55, 226, 255), 0.45, 8)
+	end
+
+	local archTop = makeNeonPart("SpawnArchTop", Vector3.new(18, 0.7, 1), Vector3.new(0, 11, 8), cyan)
+	addLight(archTop, cyan, 1.2, 24)
+	makeNeonPart("SpawnArchLeft", Vector3.new(0.8, 9, 1), Vector3.new(-9, 5.8, 8), Color3.fromRGB(0, 135, 255))
+	makeNeonPart("SpawnArchRight", Vector3.new(0.8, 9, 1), Vector3.new(9, 5.8, 8), Color3.fromRGB(0, 135, 255))
+
+	local instructionPanel = makePart("InstructionPanel", Vector3.new(24, 6, 0.7), Vector3.new(0, 6.8, -6), panelBlue)
+	instructionPanel.Material = Enum.Material.SmoothPlastic
+	addSurfaceText(
+		instructionPanel,
+		Enum.NormalId.Front,
+		"WALK TO THE TABLE  •  PRESS E  •  BEAT THE AI",
+		Color3.fromRGB(230, 248, 255),
+		Enum.Font.GothamBlack
+	)
+
+	local titlePanel = makePart("BackWallTitlePanel", Vector3.new(36, 8, 0.8), Vector3.new(0, 8.5, -45), deepBlue)
+	titlePanel.Material = Enum.Material.SmoothPlastic
+	addSurfaceText(
+		titlePanel,
+		Enum.NormalId.Front,
+		"BLUE TIC TAC TOE LOUNGE",
+		Color3.fromRGB(190, 238, 255),
+		Enum.Font.GothamBlack
+	)
+
+	for _, x in ipairs({ -20, -12, 12, 20 }) do
+		local column =
+			makePart(("LightColumn%d"):format(x), Vector3.new(1.6, 13, 1.6), Vector3.new(x, 6.5, -38), deepBlue)
+		column.Material = Enum.Material.Metal
+		local columnGlow =
+			makeNeonPart(("LightColumnGlow%d"):format(x), Vector3.new(2, 0.6, 2), Vector3.new(x, 13.2, -38), cyan)
+		addLight(columnGlow, cyan, 1.4, 18)
+	end
+
+	for index, data in ipairs({
+		{ -30, -18, "STREAKS" },
+		{ 30, -18, "SMART AI" },
+		{ -30, 7, "FAST REMATCH" },
+		{ 30, 7, "FUTURE PVP" },
+	}) do
+		local panel = makePart(
+			("FeaturePanel%d"):format(index),
+			Vector3.new(13, 5, 0.7),
+			Vector3.new(data[1], 5.5, data[2]),
+			panelBlue
+		)
+		panel.Material = Enum.Material.SmoothPlastic
+		panel.Orientation = Vector3.new(0, data[1] < 0 and 22 or -22, 0)
+		addSurfaceText(panel, Enum.NormalId.Front, data[3], Color3.fromRGB(219, 246, 255), Enum.Font.GothamBold)
+	end
+
+	for index, x in ipairs({ -16, -8, 8, 16 }) do
+		local ceilingLight = makeNeonPart(
+			("CeilingStrip%d"):format(index),
+			Vector3.new(5.5, 0.35, 0.7),
+			Vector3.new(x, 15.6, -18),
+			Color3.fromRGB(64, 222, 255)
+		)
+		addLight(ceilingLight, Color3.fromRGB(64, 222, 255), 1.1, 20)
+	end
+
+	local spawnPadLabel =
+		makePart("SpawnPadLabel", Vector3.new(14, 0.2, 2.4), Vector3.new(0, 0.55, -11), Color3.fromRGB(10, 52, 100))
+	spawnPadLabel.Material = Enum.Material.Neon
+	addSurfaceText(spawnPadLabel, Enum.NormalId.Top, "START HERE", Color3.fromRGB(235, 252, 255), Enum.Font.GothamBlack)
+end
+
+createLoungeDressing()
 
 local function createSeat(name, position, rotationY, color)
 	local seat = Instance.new("Seat")
