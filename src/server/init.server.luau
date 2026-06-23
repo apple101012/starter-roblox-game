@@ -151,7 +151,8 @@ signText.Parent = surfaceGui
 
 local boardLabels = {}
 local boardCells = {}
-local tableCenter = Vector3.new(0, 3.4, -8)
+local tableCenter = Vector3.new(0, 4, -12)
+local generatedScene = workspace:FindFirstChild("TicTacToeScene")
 
 local function createSeat(name, position, rotationY, color)
 	local seat = Instance.new("Seat")
@@ -166,12 +167,56 @@ local function createSeat(name, position, rotationY, color)
 	seat.BottomSurface = Enum.SurfaceType.Smooth
 	seat.Parent = map
 
+	local backOffset = rotationY == 180 and Vector3.new(0, 3, 3.2) or Vector3.new(0, 3, -3.2)
+	local back = makePart(
+		("%sBack"):format(name),
+		Vector3.new(5.4, 6, 0.8),
+		position + backOffset,
+		color:Lerp(Color3.fromRGB(0, 0, 0), 0.18)
+	)
+	back.Orientation = Vector3.new(0, rotationY, 0)
+	back.Material = Enum.Material.SmoothPlastic
+
 	return seat
 end
 
 local function makeTable()
-	local tableTop = makePart("AITicTacToeTable", Vector3.new(24, 1.2, 16), tableCenter, Color3.fromRGB(8, 75, 142))
+	local tableTop = makePart("AITicTacToeTable", Vector3.new(28, 1.6, 20), tableCenter, Color3.fromRGB(8, 75, 142))
 	tableTop.Material = Enum.Material.SmoothPlastic
+	addSurfaceText(tableTop, Enum.NormalId.Top, "AI TIC TAC TOE", Color3.fromRGB(229, 246, 255), Enum.Font.GothamBlack)
+
+	local frontApron = makePart(
+		"AITableFrontFace",
+		Vector3.new(28.4, 3.4, 1),
+		tableCenter + Vector3.new(0, -2.5, 10.5),
+		Color3.fromRGB(4, 38, 90)
+	)
+	frontApron.Material = Enum.Material.SmoothPlastic
+	addSurfaceText(
+		frontApron,
+		Enum.NormalId.Front,
+		"AI TIC TAC TOE TABLE",
+		Color3.fromRGB(210, 242, 255),
+		Enum.Font.GothamBlack
+	)
+
+	local backApron = makePart(
+		"AITableBackFace",
+		Vector3.new(28.4, 3.4, 1),
+		tableCenter + Vector3.new(0, -2.5, -10.5),
+		Color3.fromRGB(4, 38, 90)
+	)
+	backApron.Material = Enum.Material.SmoothPlastic
+
+	for _, side in ipairs({ -1, 1 }) do
+		local sideApron = makePart(
+			("AITableSideFace%d"):format(side),
+			Vector3.new(1, 3.4, 20),
+			tableCenter + Vector3.new(side * 14.2, -2.5, 0),
+			Color3.fromRGB(4, 31, 75)
+		)
+		sideApron.Material = Enum.Material.SmoothPlastic
+	end
 
 	local tableGlow = Instance.new("PointLight")
 	tableGlow.Brightness = 1.5
@@ -180,14 +225,14 @@ local function makeTable()
 	tableGlow.Parent = tableTop
 
 	for index, offset in ipairs({
-		Vector3.new(-10, -2.9, -6),
-		Vector3.new(10, -2.9, -6),
-		Vector3.new(-10, -2.9, 6),
-		Vector3.new(10, -2.9, 6),
+		Vector3.new(-11.5, -2.4, -7.5),
+		Vector3.new(11.5, -2.4, -7.5),
+		Vector3.new(-11.5, -2.4, 7.5),
+		Vector3.new(11.5, -2.4, 7.5),
 	}) do
 		local leg = makePart(
 			("TableLeg%d"):format(index),
-			Vector3.new(1.4, 5, 1.4),
+			Vector3.new(2.3, 4.8, 2.3),
 			tableCenter + offset,
 			Color3.fromRGB(4, 35, 78)
 		)
@@ -196,8 +241,8 @@ local function makeTable()
 
 	local boardBase = makePart(
 		"PhysicalBoardBase",
-		Vector3.new(12, 0.35, 12),
-		tableCenter + Vector3.new(0, 0.85, 0),
+		Vector3.new(13.5, 0.5, 13.5),
+		tableCenter + Vector3.new(0, 1.05, 0),
 		Color3.fromRGB(3, 19, 46)
 	)
 	boardBase.Material = Enum.Material.SmoothPlastic
@@ -212,12 +257,22 @@ local function makeTable()
 			local cell = makePart(
 				("BoardCell%d"):format(index),
 				Vector3.new(3.4, 0.25, 3.4),
-				tableCenter + Vector3.new(startX + (column - 1) * spacing, 1.15, startZ + (row - 1) * spacing),
+				tableCenter + Vector3.new(startX + (column - 1) * spacing, 1.45, startZ + (row - 1) * spacing),
 				Color3.fromRGB(8, 52, 104)
 			)
 			cell.Material = Enum.Material.Neon
 			boardCells[index] = cell
 			boardLabels[index] = addSurfaceText(cell, Enum.NormalId.Top, "", Color3.fromRGB(231, 246, 255))
+		end
+	end
+
+	return tableTop
+end
+
+local function addPromptToPart(part)
+	for _, child in ipairs(part:GetChildren()) do
+		if child:IsA("ProximityPrompt") and child.Name == "OpenTicTacToePrompt" then
+			child:Destroy()
 		end
 	end
 
@@ -229,9 +284,55 @@ local function makeTable()
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
-	prompt.Parent = tableTop
+	prompt.Parent = part
+end
 
-	return tableTop
+local function useGeneratedScene(scene)
+	local tableTop = scene:FindFirstChild("TableTop", true)
+
+	if tableTop and tableTop:IsA("BasePart") then
+		addPromptToPart(tableTop)
+	end
+
+	local oldOverlay = scene:FindFirstChild("LiveBoardOverlay")
+
+	if oldOverlay then
+		oldOverlay:Destroy()
+	end
+
+	local boardPart = scene:FindFirstChild("BoardInner", true) or scene:FindFirstChild("BoardBase", true)
+
+	if not boardPart or not boardPart:IsA("BasePart") then
+		return
+	end
+
+	local overlay = Instance.new("Model")
+	overlay.Name = "LiveBoardOverlay"
+	overlay.Parent = scene
+
+	local boardWidth = math.min(boardPart.Size.X, boardPart.Size.Z)
+	local spacing = boardWidth / 3
+	local cellSize = math.max(spacing * 0.72, 0.7)
+
+	for row = 1, 3 do
+		for column = 1, 3 do
+			local index = (row - 1) * 3 + column
+			local x = (column - 2) * spacing
+			local z = (row - 2) * spacing
+			local cell = Instance.new("Part")
+			cell.Name = ("LiveBoardCell%d"):format(index)
+			cell.Anchored = true
+			cell.CanCollide = false
+			cell.Color = Color3.fromRGB(5, 29, 70)
+			cell.Material = Enum.Material.Neon
+			cell.Size = Vector3.new(cellSize, 0.08, cellSize)
+			cell.CFrame = boardPart.CFrame * CFrame.new(x, boardPart.Size.Y / 2 + 0.18, z)
+			cell.Parent = overlay
+
+			boardCells[index] = cell
+			boardLabels[index] = addSurfaceText(cell, Enum.NormalId.Top, "", Color3.fromRGB(231, 246, 255))
+		end
+	end
 end
 
 local function makeBlockFigure(name, position, bodyColor, accentColor)
@@ -268,25 +369,41 @@ local function makeBlockFigure(name, position, bodyColor, accentColor)
 	return model
 end
 
-makeTable()
+if generatedScene then
+	useGeneratedScene(generatedScene)
+else
+	local tableTop = makeTable()
+	addPromptToPart(tableTop)
 
-createSeat("PlayerTicTacToeSeat", tableCenter + Vector3.new(0, -1.6, 12), 180, Color3.fromRGB(12, 94, 168))
-local aiSeat = createSeat("AITicTacToeSeat", tableCenter + Vector3.new(0, -1.6, -12), 0, Color3.fromRGB(22, 55, 104))
-aiSeat.Disabled = true
+	createSeat("PlayerTicTacToeSeat", tableCenter + Vector3.new(0, -1.6, 12), 180, Color3.fromRGB(12, 94, 168))
+	local aiSeat =
+		createSeat("AITicTacToeSeat", tableCenter + Vector3.new(0, -1.6, -12), 0, Color3.fromRGB(22, 55, 104))
+	aiSeat.Disabled = true
 
-makeBlockFigure(
-	"SeatedAIPlayer",
-	aiSeat.Position + Vector3.new(0, 0.1, 1.2),
-	Color3.fromRGB(0, 174, 239),
-	Color3.fromRGB(16, 220, 255)
-)
+	makeBlockFigure(
+		"SeatedAIPlayer",
+		aiSeat.Position + Vector3.new(0, 0.1, 1.2),
+		Color3.fromRGB(0, 174, 239),
+		Color3.fromRGB(16, 220, 255)
+	)
 
-local friendTable =
-	makePart("FriendMatchTablePreview", Vector3.new(16, 1, 10), Vector3.new(26, 2.8, 12), Color3.fromRGB(5, 57, 115))
-friendTable.Material = Enum.Material.SmoothPlastic
-addSurfaceText(friendTable, Enum.NormalId.Top, "2 PLAYER TABLE", Color3.fromRGB(210, 242, 255), Enum.Font.GothamBold)
-createSeat("FriendSeatA", Vector3.new(26, 1.2, 21), 180, Color3.fromRGB(12, 94, 168))
-createSeat("FriendSeatB", Vector3.new(26, 1.2, 3), 0, Color3.fromRGB(12, 94, 168))
+	local friendTable = makePart(
+		"FriendMatchTablePreview",
+		Vector3.new(16, 1, 10),
+		Vector3.new(26, 2.8, 12),
+		Color3.fromRGB(5, 57, 115)
+	)
+	friendTable.Material = Enum.Material.SmoothPlastic
+	addSurfaceText(
+		friendTable,
+		Enum.NormalId.Top,
+		"2 PLAYER TABLE",
+		Color3.fromRGB(210, 242, 255),
+		Enum.Font.GothamBold
+	)
+	createSeat("FriendSeatA", Vector3.new(26, 1.2, 21), 180, Color3.fromRGB(12, 94, 168))
+	createSeat("FriendSeatB", Vector3.new(26, 1.2, 3), 0, Color3.fromRGB(12, 94, 168))
+end
 
 local function updatePhysicalBoard(board, line, winner)
 	local winningSquares = {}
